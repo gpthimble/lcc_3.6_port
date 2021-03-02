@@ -1,6 +1,9 @@
 # $Id$
 SHELL=/bin/sh
+BUILDDIR=~/lcc
+HOSTFILE=etc/linux.c
 
+LD=$(CC)
 what:
 	-@echo make `sed -n '/^all:/s///p' makefile` triple clean clobber
 
@@ -82,17 +85,16 @@ $(BUILDDIR)/mips.c:	$(BUILDDIR)/lburg src/mips.md;	$(BUILDDIR)/lburg <src/mips.m
 $(BUILDDIR)/sparc.c:	$(BUILDDIR)/lburg src/sparc.md;	$(BUILDDIR)/lburg <src/sparc.md >$@
 $(BUILDDIR)/x86.c:	$(BUILDDIR)/lburg src/x86.md;	$(BUILDDIR)/lburg <src/x86.md   >$@
 
-YFLAGS=
 $(BUILDDIR)/lburg:	$(BUILDDIR)/lburg.o $(BUILDDIR)/gram.o
 			$(CC) -Ilburg -o $@ $(LDFLAGS) $(BUILDDIR)/lburg.o $(BUILDDIR)/gram.o
 
 $(BUILDDIR)/lburg.o:	lburg/lburg.c lburg/lburg.h
 			$(CC) -c $(CFLAGS) -Ilburg -o $@ lburg/lburg.c
-$(BUILDDIR)/gram.o:	$(BUILDDIR)/gram.c lburg/lburg.h
-			$(CC) -c $(CFLAGS) -Ilburg -o $@ $(BUILDDIR)/gram.c
+$(BUILDDIR)/gram.o:	lburg/gram.c lburg/lburg.h
+			$(CC) -c $(CFLAGS) -Ilburg -o $@ lburg/gram.c
 
-$(BUILDDIR)/gram.c:	lburg/gram.y
-			cwd=`pwd`; (cd $(BUILDDIR); \
+#$(BUILDDIR)/gram.c:	lburg/gram.y
+#			cwd=`pwd`; (cd $(BUILDDIR); \
 $(YACC) $(YFLAGS) $$cwd/lburg/gram.y) && mv $(BUILDDIR)/y.tab.c $@
 
 
