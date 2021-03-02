@@ -107,7 +107,7 @@ stmt: ASGNF(VREGP,reg)  "# write register\n"
 stmt: ASGNI(VREGP,reg)  "# write register\n"
 stmt: ASGNP(VREGP,reg)  "# write register\n"
 stmt: ASGNS(VREGP,reg)  "# write register\n"
-con: CNSTC  "%a"
+con: CNSTC  "%a" 
 con: CNSTI  "%a"
 con: CNSTP  "%a"
 con: CNSTS  "%a"
@@ -117,7 +117,7 @@ reg: CVIU(reg)  "%0"  notarget(a)
 reg: CVPU(reg)  "%0"  notarget(a)
 reg: CVUI(reg)  "%0"  notarget(a)
 reg: CVUP(reg)  "%0"  notarget(a)
-acon: con     "%0"
+acon: con     "%0"   
 acon: ADDRGP  "%a"
 addr: ADDI(reg,acon)  "%1($%0)"
 addr: ADDU(reg,acon)  "%1($%0)"
@@ -152,9 +152,9 @@ reg: DIVI(reg,reg)  "div $%c,$%0,$%1\n"   1
 reg: DIVU(reg,reg)  "divu $%c,$%0,$%1\n"  1
 reg: MODI(reg,reg)  "rem $%c,$%0,$%1\n"   1
 reg: MODU(reg,reg)  "remu $%c,$%0,$%1\n"  1
-reg: MULI(reg,reg)  "mul $%c,$%0,$%1\n"   1
-reg: MULU(reg,reg)  "mul $%c,$%0,$%1\n"   1
-rc:  con            "%0"
+reg: MULI(reg,reg)  "jal mul\n"   1
+reg: MULU(reg,reg)  "jal mul\n"   1
+rc:  con            "%0" 	
 rc:  reg            "$%0"
 
 reg: ADDI(reg,rc)   "addu $%c,$%0,%1\n"  1
@@ -295,6 +295,11 @@ static void progbeg(argc, argv) int argc; char *argv[]; {
 static void target(p) Node p; {
 	assert(p);
 	switch (p->op) {
+	case MULI: case MULU:
+		setreg(p, ireg[2]);
+		rtarget(p,0,ireg[4]);
+		rtarget(p,1,ireg[5]);
+		break;
 	case CNSTC: case CNSTI: case CNSTS: case CNSTU: case CNSTP:
 		if (range(p, 0, 0) == 0) {
 			setreg(p, ireg[0]);
@@ -338,6 +343,10 @@ static void clobber(p) Node p; {
 		break;
 	case CALLV:
 		spill(INTTMP | INTRET, IREG, p);
+		spill(FLTTMP | FLTRET, FREG, p);
+		break;
+	case MULI : case MULU:
+		spill(INTTMP,          IREG, p);
 		spill(FLTTMP | FLTRET, FREG, p);
 		break;
 	}
@@ -474,7 +483,7 @@ Symbol f, callee[], caller[]; int ncalls; {
 	framesize = roundup(maxargoffset + sizefsave
 		+ sizeisave + maxoffset, 8);
 	segment(CODE);
-	print(".align 2\n");
+	print("#align 32\n");
 	print(".ent %s\n", f->x.name);
 	print("%s:\n", f->x.name);
 	i = maxargoffset + sizefsave - framesize;
@@ -564,15 +573,15 @@ Symbol f, callee[], caller[]; int ncalls; {
 }
 static void defconst(ty, v) int ty; Value v; {
 	switch (ty) {
-	case C: print(".byte %d\n",   v.uc); return;
-	case S: print(".half %d\n",   v.ss); return;
-	case I: print(".word 0x%x\n", v.i);  return;
-	case U: print(".word 0x%x\n", v.u);  return;
-	case P: print(".word 0x%x\n", v.p); return;
-	case F: print(".word 0x%x\n", *(unsigned *)&v.f); return;
+	case C: print("#d8 %d\n",   v.uc); return;
+	case S: print("#d16 %d\n",   v.ss); return;
+	case I: print("#d32 0x%x\n", v.i);  return;
+	case U: print("#d32 0x%x\n", v.u);  return;
+	case P: print("#d32 0x%x\n", v.p); return;
+	case F: print("#d32 0x%x\n", *(unsigned *)&v.f); return;
 	case D: {
 		unsigned *p = (unsigned *)&v.d;
-		print(".word 0x%x\n.word 0x%x\n", p[swap], p[!swap]);
+		print("#d32 0x%x\n#d32 0x%x\n", p[swap], p[!swap]);
 		return;
 		}
 	}
@@ -582,13 +591,13 @@ static void defaddress(p) Symbol p; {
 	if (pic && p->scope == LABELS)
 		print(".gpword %s\n", p->x.name);
 	else
-		print(".word %s\n", p->x.name);
+		print("#d32 %s\n", p->x.name);
 }
 static void defstring(n, str) int n; char *str; {
 	char *s;
 
 	for (s = str; s < str + n; s++)
-		print(".byte %d\n", (*s)&0377);
+		print("#d8 %d\n", (*s)&0377);
 }
 static void export(p) Symbol p; {
 	print(".globl %s\n", p->x.name);
@@ -627,7 +636,20 @@ static void global(p) Symbol p; {
 			print(".data\n");
 		else if (p->u.seg == DATA)
 			print(".sdata\n");
-		print(".align %c\n", ".01.2...3"[p->type->align]);
+		switch (p->type->align)
+		{
+			case 0 :
+					 break;
+			case 1 : print("#align 8\n");
+					 break;
+			case 2 : print("#align 16\n");
+					 break;
+			case 3 : print("#align 32\n");
+					 break;
+			case 4 : print("#align 64\n");
+					 break;				
+			default: break;
+		}
 		print("%s:\n", p->x.name);
 	}
 }
@@ -728,7 +750,7 @@ Interface mipsebIR = {
 	4, 4, 0,  /* T * */
 	0, 1, 0,  /* struct */
 	0,	/* little_endian */
-	0,  /* mulops_calls */
+	1,  /* mulops_calls */
 	0,  /* wants_callb */
 	1,  /* wants_argb */
 	1,  /* left_to_right */
