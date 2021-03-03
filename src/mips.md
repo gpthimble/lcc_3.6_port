@@ -119,13 +119,13 @@ reg: CVUI(reg)  "%0"  notarget(a)
 reg: CVUP(reg)  "%0"  notarget(a)
 acon: con     "%0"   
 acon: ADDRGP  "%a"
-addr: ADDI(reg,acon)  "%1($%0)"
-addr: ADDU(reg,acon)  "%1($%0)"
-addr: ADDP(reg,acon)  "%1($%0)"
+addr: ADDI(reg,acon)  "%1+($%0)"
+addr: ADDU(reg,acon)  "%1+($%0)"
+addr: ADDP(reg,acon)  "%1+($%0)"
 addr: acon  "%0"
 addr: reg   "($%0)"
-addr: ADDRFP  "%a+%F($sp)"
-addr: ADDRLP  "%a+%F($sp)"
+addr: ADDRFP  "%a+%F+($sp)"
+addr: ADDRLP  "%a+%F+($sp)"
 reg: addr  "la $%c,%0\n"  1
 reg: CNSTC  "# reg\n"  range(a, 0, 0)
 reg: CNSTS  "# reg\n"  range(a, 0, 0)
@@ -364,11 +364,11 @@ static void emit2(p) Node p; {
 		q = argreg(p->x.argno, p->syms[2]->u.c.v.i, ty, ty0);
 		src = getregnum(p->x.kids[0]);
 		if (q == NULL && ty == F)
-			print("s.s $f%d,%d($sp)\n", src, p->syms[2]->u.c.v.i);
+			print("s.s $f%d,%d+($sp)\n", src, p->syms[2]->u.c.v.i);
 		else if (q == NULL && ty == D)
-			print("s.d $f%d,%d($sp)\n", src, p->syms[2]->u.c.v.i);
+			print("s.d $f%d,%d+($sp)\n", src, p->syms[2]->u.c.v.i);
 		else if (q == NULL)
-			print("sw $%d,%d($sp)\n", src, p->syms[2]->u.c.v.i);
+			print("sw $%d,%d+($sp)\n", src, p->syms[2]->u.c.v.i);
 		else if (ty == F && q->x.regnode->set == IREG)
 			print("mfc1 $%d,$f%d\n", q->x.regnode->number, src);
 		else if (ty == D && q->x.regnode->set == IREG)
@@ -389,7 +389,7 @@ static void emit2(p) Node p; {
 		n   = p->syms[2]->u.c.v.i + p->syms[0]->u.c.v.i;
 		dst = p->syms[2]->u.c.v.i;
 		for ( ; dst <= 12 && dst < n; dst += 4)
-			print("lw $%d,%d($sp)\n", (dst/4)+4, dst);
+			print("lw $%d,%d+($sp)\n", (dst/4)+4, dst);
 		break;
 	}
 }
@@ -500,7 +500,7 @@ Symbol f, callee[], caller[]; int ncalls; {
 	saved = maxargoffset;
 	for (i = 20; i <= 30; i += 2)
 		if (usedmask[FREG]&(3<<i)) {
-			print("s.d $f%d,%d($sp)\n", i, saved);
+			print("s.d $f%d,%d+($sp)\n", i, saved);
 			saved += 8;
 		}
 	for (i = 16; i <= 31; i++)
@@ -508,7 +508,7 @@ Symbol f, callee[], caller[]; int ncalls; {
 			if (i == 25)
 				print(".cprestore %d\n", saved);
 			else
-				print("sw $%d,%d($sp)\n", i, saved);
+				print("sw $%d,%d+($sp)\n", i, saved);
 			saved += 4;
 		}
 	for (i = 0; i < 4 && callee[i]; i++) {
@@ -538,13 +538,13 @@ Symbol f, callee[], caller[]; int ncalls; {
 			} else {
 				int off = in->x.offset + framesize;
 				if (rs == FREG && tyin == D)
-					print("s.d $f%d,%d($sp)\n", rn, off);
+					print("s.d $f%d,%d+($sp)\n", rn, off);
 				else if (rs == FREG && tyin == F)
-					print("s.s $f%d,%d($sp)\n", rn, off);
+					print("s.s $f%d,%d+($sp)\n", rn, off);
 				else {
 					int i, n = (in->type->size + 3)/4;
 					for (i = rn; i < rn+n && i <= 7; i++)
-						print("sw $%d,%d($sp)\n", i, off + (i-rn)*4);
+						print("sw $%d,%d+($sp)\n", i, off + (i-rn)*4);
 				}
 			}
 		}
@@ -552,18 +552,18 @@ Symbol f, callee[], caller[]; int ncalls; {
 	if (varargs && callee[i-1]) {
 		i = callee[i-1]->x.offset + callee[i-1]->type->size;
 		for (i = roundup(i, 4)/4; i <= 3; i++)
-			print("sw $%d,%d($sp)\n", i + 4, framesize + 4*i);
+			print("sw $%d,%d+($sp)\n", i + 4, framesize + 4*i);
 		}
 	emitcode();
 	saved = maxargoffset;
 	for (i = 20; i <= 30; i += 2)
 		if (usedmask[FREG]&(3<<i)) {
-			print("l.d $f%d,%d($sp)\n", i, saved);
+			print("l.d $f%d,%d+($sp)\n", i, saved);
 			saved += 8;
 		}
 	for (i = 16; i <= 31; i++)
 		if (usedmask[IREG]&(1<<i)) {
-			print("lw $%d,%d($sp)\n", i, saved);
+			print("lw $%d,%d+($sp)\n", i, saved);
 			saved += 4;
 		}
 	if (framesize > 0)
@@ -680,28 +680,28 @@ static void blkfetch(size, off, reg, tmp)
 int size, off, reg, tmp; {
 	assert(size == 1 || size == 2 || size == 4);
 	if (size == 1)
-		print("lbu $%d,%d($%d)\n",  tmp, off, reg);
+		print("lbu $%d,%d+($%d)\n",  tmp, off, reg);
 	else if (salign >= size && size == 2)
-		print("lhu $%d,%d($%d)\n",  tmp, off, reg);
+		print("lhu $%d,%d+($%d)\n",  tmp, off, reg);
 	else if (salign >= size)
-		print("lw $%d,%d($%d)\n",   tmp, off, reg);
+		print("lw $%d,%d+($%d)\n",   tmp, off, reg);
 	else if (size == 2)
-		print("ulhu $%d,%d($%d)\n", tmp, off, reg);
+		print("ulhu $%d,%d+($%d)\n", tmp, off, reg);
 	else
-		print("ulw $%d,%d($%d)\n",  tmp, off, reg);
+		print("ulw $%d,%d+($%d)\n",  tmp, off, reg);
 }
 static void blkstore(size, off, reg, tmp)
 int size, off, reg, tmp; {
 	if (size == 1)
-		print("sb $%d,%d($%d)\n",  tmp, off, reg);
+		print("sb $%d,%d+($%d)\n",  tmp, off, reg);
 	else if (dalign >= size && size == 2)
-		print("sh $%d,%d($%d)\n",  tmp, off, reg);
+		print("sh $%d,%d+($%d)\n",  tmp, off, reg);
 	else if (dalign >= size)
-		print("sw $%d,%d($%d)\n",  tmp, off, reg);
+		print("sw $%d,%d+($%d)\n",  tmp, off, reg);
 	else if (size == 2)
-		print("ush $%d,%d($%d)\n", tmp, off, reg);
+		print("ush $%d,%d+($%d)\n", tmp, off, reg);
 	else
-		print("usw $%d,%d($%d)\n", tmp, off, reg);
+		print("usw $%d,%d+($%d)\n", tmp, off, reg);
 }
 static void stabinit ARGS((char *, int, char *[]));
 static void stabline ARGS((Coordinate *));
