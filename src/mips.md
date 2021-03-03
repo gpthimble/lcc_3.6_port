@@ -608,9 +608,9 @@ static void import(p) Symbol p; {
 }
 static void defsymbol(p) Symbol p; {
 	if (p->scope >= LOCAL && p->sclass == STATIC)
-		p->x.name = stringf("L.%d", genlabel(1));
+		p->x.name = stringf("L$%d", genlabel(1));
 	else if (p->generated)
-		p->x.name = stringf("L.%s", p->name);
+		p->x.name = stringf("L$%s", p->name);
 	else
 		assert(p->scope != CONSTANTS || isint(p->type) || isptr(p->type)),
 		p->x.name = p->name;
@@ -671,11 +671,11 @@ int dreg, doff, sreg, soff, size, tmps[]; {
 	print("addu $%d,$%d,%d\n", sreg, sreg, size&~7);
 	print("addu $%d,$%d,%d\n", tmps[2], dreg, size&~7);
 	blkcopy(tmps[2], doff, sreg, soff, size&7, tmps);
-	print("L.%d:\n", lab);
+	print("L$%d:\n", lab);
 	print("addu $%d,$%d,%d\n", sreg, sreg, -8);
 	print("addu $%d,$%d,%d\n", tmps[2], tmps[2], -8);
 	blkcopy(tmps[2], doff, sreg, soff, 8, tmps);
-	print("bltu $%d,$%d,L.%d\n", dreg, tmps[2], lab);
+	print("bltu $%d,$%d,L$%d\n", dreg, tmps[2], lab);
 }
 static void blkfetch(size, off, reg, tmp)
 int size, off, reg, tmp; {
@@ -802,7 +802,7 @@ space,
 	4, 4, 0,  /* T * */
 	0, 1, 0,  /* struct */
 	1,	/* little_endian */
-	0,  /* mulops_calls */
+	1,  /* mulops_calls */
 	0,  /* wants_callb */
 	1,  /* wants_argb */
 	1,  /* left_to_right */
