@@ -627,29 +627,28 @@ static void address(q, p, n) Symbol q, p; int n; {
 static void global(p) Symbol p; {
 	if (p->u.seg == BSS) {
 		if (p->sclass == STATIC || Aflag >= 2)
-			print(".lcomm %s,%d\n", p->x.name, p->type->size);
+		{
+			print(".bss\n");
+			print("#align %d\n", p->type->align*8);
+			print("%s:\n", p->x.name);
+			print("#res %d\n",p->type->size);
+			//print(".lcomm %s,%d\n", p->x.name, p->type->size);
+		}
 		else
-			print( ".comm %s,%d\n", p->x.name, p->type->size);
+		{
+			print(".bss\n");
+			print("#align %d\n", p->type->align*8);
+			print("%s:\n", p->x.name);
+			print("#res %d\n",p->type->size);
+			//print( ".comm %s,%d\n", p->x.name, p->type->size);
+		}
 	} else {
 		if (p->u.seg == DATA
 		&& (p->type->size == 0 || p->type->size > gnum))
 			print(".data\n");
 		else if (p->u.seg == DATA)
 			print(".sdata\n");
-		switch (p->type->align)
-		{
-			case 0 :
-					 break;
-			case 1 : print("#align 8\n");
-					 break;
-			case 2 : print("#align 16\n");
-					 break;
-			case 3 : print("#align 32\n");
-					 break;
-			case 4 : print("#align 64\n");
-					 break;				
-			default: break;
-		}
+		print("#align %d\n", p->type->align*8);
 		print("%s:\n", p->x.name);
 	}
 }
