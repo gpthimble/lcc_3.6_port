@@ -270,7 +270,7 @@ static void progbeg(argc, argv) int argc; char *argv[]; {
 		u.c = 1;
 		swap = ((int)(u.i == 1)) != ((int)IR->little_endian);
 	}
-	print(".set reorder\n");
+	print(";set reorder\n");
 	pic = !IR->little_endian;
 	parseflags(argc, argv);
 	for (i = 0; i < argc; i++)
@@ -484,16 +484,16 @@ Symbol f, callee[], caller[]; int ncalls; {
 		+ sizeisave + maxoffset, 8);
 	segment(CODE);
 	print("#align 32\n");
-	print(".ent %s\n", f->x.name);
+	print(";ent %s\n", f->x.name);
 	print("%s:\n", f->x.name);
 	i = maxargoffset + sizefsave - framesize;
-	print(".frame $sp,%d,$31\n", framesize);
+	print(";frame $sp,%d,$31\n", framesize);
 	if (pic)
 		print(".set noreorder\n.cpload $25\n.set reorder\n");
 	if (framesize > 0)
 		print("addu $sp,$sp,%d\n", -framesize);
 	if (usedmask[FREG])
-		print(".fmask 0x%x,%d\n", usedmask[FREG], i - 8);
+		print(";fmask 0x%x,%d\n", usedmask[FREG], i - 8);
 	if (usedmask[IREG])
 		print(".mask 0x%x,%d\n",  usedmask[IREG],
 			i + sizeisave - 4);
@@ -569,7 +569,7 @@ Symbol f, callee[], caller[]; int ncalls; {
 	if (framesize > 0)
 		print("addu $sp,$sp,%d\n", framesize);
 	print("j $31\n");
-	print(".end %s\n", f->x.name);
+	print(";end %s\n", f->x.name);
 }
 static void defconst(ty, v) int ty; Value v; {
 	switch (ty) {
@@ -600,11 +600,11 @@ static void defstring(n, str) int n; char *str; {
 		print("#d8 %d\n", (*s)&0377);
 }
 static void export(p) Symbol p; {
-	print(".globl %s\n", p->x.name);
+	print(";globl %s\n", p->x.name);
 }
 static void import(p) Symbol p; {
 	if (!isfunc(p->type))
-		print(".extern %s %d\n", p->name, p->type->size);
+		print(";extern %s %d\n", p->name, p->type->size);
 }
 static void defsymbol(p) Symbol p; {
 	if (p->scope >= LOCAL && p->sclass == STATIC)
@@ -661,7 +661,7 @@ static void segment(n) int n; {
 }
 static void space(n) int n; {
 	if (cseg != BSS)
-		print(".space %d\n", n);
+		print("#res %d\n", n);
 }
 static void blkloop(dreg, doff, sreg, soff, size, tmps)
 int dreg, doff, sreg, soff, size, tmps[]; {
@@ -721,7 +721,7 @@ static int bitcount(mask) unsigned mask; {
 /* stabinit - initialize stab output */
 static void stabinit(file, argc, argv) int argc; char *file, *argv[]; {
 	if (file) {
-		print(".file 2,\"%s\"\n", file);
+		print(";file 2,\"%s\"\n", file);
 		currentfile = file;
 	}
 }
@@ -729,10 +729,10 @@ static void stabinit(file, argc, argv) int argc; char *file, *argv[]; {
 /* stabline - emit stab entry for source coordinate *cp */
 static void stabline(cp) Coordinate *cp; {
 	if (cp->file && cp->file != currentfile) {
-		print(".file 2,\"%s\"\n", cp->file);
+		print(";file 2,\"%s\"\n", cp->file);
 		currentfile = cp->file;
 	}
-	print(".loc 2,%d\n", cp->y);
+	print(";loc 2,%d\n", cp->y);
 }
 
 /* stabsym - output a stab entry for symbol p */
