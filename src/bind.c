@@ -4,6 +4,7 @@ extern Interface mipsebIR, mipselIR;
 extern Interface sparcIR,  solarisIR;
 extern Interface x86IR;
 Binding bindings[] = {
+	"systemOT", 	 &mipselIR,		/*my own system*/
 	"symbolic",      &symbolicIR,
 	"mips-irix",     &mipsebIR,
 	"mips-ultrix",   &mipselIR,

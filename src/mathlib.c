@@ -126,20 +126,3 @@ unsigned int mul (unsigned int a, unsigned int b)
     }
   return r;
 }
-
-
-
-//
-//int main( ) {
-// 
-//   char str[100];
-//   unsigned int a,b;
-// 
-//   printf( "Enter a value :");
-//   scanf("%d %d", &a, &b);
-//   printf( "a/b= %d ", divu(a,b));
-//   printf( "a % b= %d ", remu(a,b));
-//   printf( "a * b= %d ", mul(a,b));
-//   printf("\n");
-//   return 0;
-//}
